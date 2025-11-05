@@ -18,12 +18,11 @@ This is a template framework for creating and evaluating AI agent tasks. It prov
 │   ├── grading_runner.py        # Test execution and grading logic
 │   ├── utils.py                 # Utility functions
 │   ├── setup.py                 # Environment setup
-│   ├── problems/              # Task definitions by difficulty
-│   │   ├── basic_tasks.py       # Easy difficulty tasks
+│   ├── problems/                # Task definitions by difficulty
+│   │   ├── basic.py             # Easy difficulty tasks
 │   └── tools/                   # MCP tools for testing
 │       ├── base.py              # Base tool definitions
 │       ├── bash.py              # Bash execution
-│       ├── computer.py          # Computer interaction
 │       ├── edit.py              # File editing
 │       └── run.py               # Command running
 ├── pyproject.toml               # Python package configuration
@@ -39,13 +38,24 @@ Problems are defined using the `ProblemSpec` data class with these key fields:
 
 ```python
     ProblemSpec(
-        id="greet_len", # the unique ID of the problem
-        description="Please complete the function greet_length without using `sorry`.", # What you want the agent to do
+        id="simple_counter", # the unique ID of the problem
+        description="""Please implement a simple synchronous counter that with reset, enable, and load functionality.
+Inputs:
+clk - Clock signal (triggers on rising edge)
+rst - Synchronous reset signal
+ena - Enable signal (allows counting)
+set - Load signal (sets counter to a specific value)
+din - 8-bit data input (value to load when set is high)
+Output:
+counter - 8-bit counter value        
+        
+""", # What you want the agent to do
         difficulty="easy", # how difficult the problem is
         # the branch names
-        base="greet_len_baseline", 
-        test="greet_len_test",
-        golden="greet_len_golden",
+        base="simple_counter_baseline", 
+        test="simple_counter_test",
+        golden="simple_counter_golden",
+        test_files=["tests/test_simple_counter_hidden.py"]
     )
 ```
 
@@ -55,8 +65,7 @@ Tasks are graded by:
 1. Copying the repository (including whatever changes the agent made) to a clean workspace
 2. Applying the agent's solution patch
 3. Applying a test patch on top of what the agent did (adds tests that would fail in an unmodified repo)
-4. Check if the project compiles with `lake build`
-5. Running `lake test` to test the build 
+4. Running `pytest <test files>` to test the build 
 
 ## Creating New Tasks
 
@@ -76,12 +85,23 @@ Once you do that, you can add a problem to the registry as follows:
 ```python
 PROBLEM_REGISTRY.append(
     ProblemSpec(
-        id="greet_len",
-        description="Please complete the function greet_length without using `sorry`.",
+        id="simple_counter",
+        description="""Please implement a simple synchronous counter that with reset, enable, and load functionality.
+Inputs:
+clk - Clock signal (triggers on rising edge)
+rst - Synchronous reset signal
+ena - Enable signal (allows counting)
+set - Load signal (sets counter to a specific value)
+din - 8-bit data input (value to load when set is high)
+Output:
+counter - 8-bit counter value        
+        
+""",
         difficulty="easy",
-        base="greet_len_baseline",
-        test="greet_len_test",
-        golden="greet_len_golden",
+        base="simple_counter_baseline",
+        test="simple_counter_test",
+        golden="simple_counter_golden",
+        test_files=["tests/test_simple_counter_hidden.py"],
     )
 )
 ```
@@ -104,7 +124,7 @@ uv run utils/imagectl3.py --build --validate
 You can specify the exact image you want to test with the `--ids` flag. 
 You can also make this easier to type by using the shorform `-b` flag for `--build` and the shortform `-v` flag for `--validate`.
 ```bash
-uv run utils/imagectl3.py -bv --ids greet_len
+uv run utils/imagectl3.py -bv --ids simple_counter
 ```
 Note: ensure your image is built before you try to validate it.
 

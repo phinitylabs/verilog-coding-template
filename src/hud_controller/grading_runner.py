@@ -89,7 +89,7 @@ class GradingRunner:
 
 
     def _get_build_command(self) -> list[str]:
-        return ["uv", "sync"]
+        return ["true"] # no build needed for this project
 
     def _get_test_command(self) -> list[str]:
         return ["uv", "run", "pytest", *self.test_files]
