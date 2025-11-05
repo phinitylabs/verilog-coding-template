@@ -88,9 +88,9 @@ import_submodules(hud_controller.problems)
 
 # [CUSTOMIZE] Update this template for your project
 template = """
-You will be working on a task for example-lean-codebase.
-The repository has already been cloned in the environment in /home/ubuntu/example-lean-codebase.
-Lean has been installed, please source ~/.bash_profile to use it.
+You will be working on a task for example-verilog-codebase.
+The repository has already been cloned in the environment in /home/ubuntu/example-verilog-codebase.
+Iverilog and Verilator have been installed.
 
 Use the tools provided to complete the following task:
 
