@@ -193,7 +193,7 @@ def grade_problem_script(
     transcript = "dummy transcript"
     grade = asyncio.run(grade_problem(problem_id, transcript))
     with open(output_path, "w") as f:
-        f.write(grade.metadata["AgentPatchGrader"]["junit"])
+        f.write(grade.metadata["junit"])
     print(grade)
 
 

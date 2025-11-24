@@ -95,8 +95,23 @@ RUN git config --global user.name "mr agent"
 # =================================================================
 
 
-ENV random1=random1
-RUN git clone https://github.com/hud-evals/example-verilog-codebase /home/ubuntu/example-verilog-codebase
+# 0) Clone or copy your project repository
+# Replace with your repo URL and credentials if needed
+# ENV GITHUB_TOKEN_BASE64=[YOUR_GITHUB_TOKEN_BASE64]
+# ENV GITHUB_USERNAME=[YOUR_GITHUB_USERNAME]
+# Example for private repo:
+# RUN cd /home/ubuntu && \
+#     GITHUB_TOKEN=$(echo "$GITHUB_TOKEN_BASE64" | base64 -d); \
+#     git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/your-org/your-repo /home/ubuntu/[PROJECT_NAME]
+# Example for public repo:
+ENV random=random22
+# Clone from public GitHub repository
+# Updated to use local microcode_arithmetic repo
+COPY --chown=ubuntu:ubuntu local-repos/microcode_arithmetic /home/ubuntu/example-verilog-codebase
+
+# RUN cd /home/ubuntu && \
+#     git clone https://github.com/sonyashijin/problem5_rc5_ca_keygen.git example-verilog-codebase && \
+#     chown -R ubuntu:ubuntu example-verilog-codebase
 
 WORKDIR /home/ubuntu/example-verilog-codebase
 

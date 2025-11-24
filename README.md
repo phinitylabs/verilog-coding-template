@@ -167,20 +167,40 @@ uv run hud remote-hud.json claude --max-steps 50
 
 ## Configuration
 
+### Target Repository Dependency
+
+The framework clones a **target Verilog repository** that contains the problems to be solved. This is configured in two places:
+
+1. **Dockerfile (line ~109):** Specifies which repo to clone
+   ```dockerfile
+   RUN git clone https://github.com/hud-evals/example-verilog-codebase /home/ubuntu/example-codebase
+   ```
+
+2. **grading_runner.py (line 46):** Path where the cloned repo lives
+   ```python
+   self.original_repo_path = "/home/ubuntu/example-codebase"
+   ```
+
+**Important:** When making changes to the remote repository, ALWAYS increment the `random` variable in the Dockerfile (line ~108) to force Docker to re-clone:
+```dockerfile
+ENV random=random6  # Increment this number!
+```
+
 ### Environment Variables
 
 Key environment variables used by the grading system:
 
 - `MCP_TESTING_MODE` - Enable testing tools (default: "1")
 - `NODE_ENV` - Node environment (set to "test" for testing)
-- `WEBHOOK_FAILURE_TIME_WINDOW` - Example task-specific config
-- `WEBHOOK_FAILURE_RATE_THRESHOLD` - Example task-specific config
+- `PROBLEM_ID` - The specific problem being evaluated
+- `HINTS` - Hint level for the problem
 
 ### Docker Configuration
 
 The included `Dockerfile` sets up the complete environment:
 - Base system with required tools
-- verilog
+- Verilog toolchain (iverilog, verilator)
+- Python test framework (pytest, cocotb)
 - VNC for GUI testing (if needed)
 
 
