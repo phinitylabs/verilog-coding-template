@@ -21,17 +21,20 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("agent_evaluation", log_level="DEBUG", debug=True)
 
 TEST_MODE = os.environ.get("MCP_TESTING_MODE", "1") in ["1", "true"]
-
 if TEST_MODE:
     # Note, these tools are only available in testing mode for the purpose of testing
     # If the enviroment performs well with these tools, it will also work with our internal
     # implementation
 
+    from .tools.apply_patch import ApplyPatchResult, ApplyPatchTool
     from .tools.bash import BashTool
     from .tools.edit import Command, EditTool
+    from .tools.shell import ShellResult, ShellTool
 
     edit_tool = EditTool()
     bash_tool = BashTool()
+    shell_tool = ShellTool()
+    apply_patch_tool = ApplyPatchTool(base_path="/home/ubuntu/example-verilog-codebase")
 
     @mcp.tool(
         name="str_replace_based_edit_tool",
@@ -79,6 +82,58 @@ if TEST_MODE:
         return await bash_tool(
             command=command,
             restart=restart,
+        )
+
+    @mcp.tool(
+        name="shell",
+        description="Run shell commands. Supports concurrent command execution with dynamic timeout and output length.",
+    )
+    async def shell(
+        *,
+        commands: list[str] | None = None,
+        timeout_ms: int | None = None,
+        max_output_length: int | None = None,
+    ) -> ShellResult:
+        """Execute shell commands conforming to OpenAI's shell tool specification.
+
+        Args:
+            commands (list[str] | None): List of shell commands to execute.
+            timeout_ms (int | None, optional): Timeout in milliseconds for each command. Defaults to 120000.
+            max_output_length (int | None, optional): Max output length (passed back to API). Defaults to None.
+
+        Returns:
+            ShellResult: Result containing output for each command with stdout, stderr, and outcome.
+        """
+        return await shell_tool(
+            commands=commands,
+            timeout_ms=timeout_ms,
+            max_output_length=max_output_length,
+        )
+
+    @mcp.tool(
+        name="apply_patch",
+        description="Create, update, or delete files using structured V4A diffs.",
+    )
+    async def apply_patch(
+        *,
+        type: str | None = None,
+        path: str | None = None,
+        diff: str | None = None,
+    ) -> ApplyPatchResult:
+        """Apply file operations using V4A diff format conforming to OpenAI's apply_patch tool specification.
+
+        Args:
+            type (str | None): Operation type - "create_file", "update_file", or "delete_file"
+            path (str | None): The file path to operate on
+            diff (str | None): The V4A diff content (required for create_file and update_file)
+
+        Returns:
+            ApplyPatchResult: Result with status ("completed" or "failed") and optional output message.
+        """
+        return await apply_patch_tool(
+            type=type,
+            path=path,
+            diff=diff,
         )
 
 # import all submodules

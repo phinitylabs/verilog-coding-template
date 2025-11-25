@@ -243,7 +243,13 @@ def push_image(image: str) -> bool:
     logger.info(f"Push succeeded for {image}")
     return True
 
-def hud_dict(spec: ProcessedSpec, local: bool) -> dict:
+
+def hud_dict(spec: ProcessedSpec, local: bool, provider: Literal["claude", "openai"]) -> dict:
+    allowed_tools_mapping = {
+        "claude": ["bash", "str_replace_based_edit_tool"],
+        "openai": ["shell", "apply_patch"],
+    }
+
     result = {
         "id": spec.id,
         "prompt": "",
@@ -256,7 +262,7 @@ def hud_dict(spec: ProcessedSpec, local: bool) -> dict:
             "arguments": {"problem_id": spec.id, "transcript": "dummy transcript"},
         },
         "agent_config": {
-            "allowed_tools": ["bash", "str_replace_based_edit_tool"],
+            "allowed_tools": allowed_tools_mapping[provider],
         },
     }
 
@@ -285,19 +291,23 @@ def hud_dict(spec: ProcessedSpec, local: bool) -> dict:
 
     return result
 
-def generate_local_hud_json(specs: list[ProcessedSpec], output_file: str = "local-hud.json") -> None:
-    results = [hud_dict(spec, local=True) for spec in specs]
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
-        f.write("\n")
-    logger.info(f"Generated {output_file} with {len(results)} problems")
 
-def generate_remote_hud_json(specs: list[ProcessedSpec], output_file: str = "remote-hud.json") -> None:
-    results = [hud_dict(spec, local=False) for spec in specs]
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
-        f.write("\n")
-    logger.info(f"Generated {output_file} with {len(results)} problems")
+def generate_jsons(specs: list[ProcessedSpec]) -> None:
+    """Generate all 4 JSON files for the combinations of local/remote × claude/openai."""
+    combinations: list[tuple[bool, Literal["claude", "openai"], str]] = [
+        (True, "claude", "local-claude-hud.json"),
+        (True, "openai", "local-openai-hud.json"),
+        (False, "claude", "remote-claude-hud.json"),
+        (False, "openai", "remote-openai-hud.json"),
+    ]
+
+    for local, provider, output_file in combinations:
+        results = [hud_dict(spec, local=local, provider=provider) for spec in specs]
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
+            f.write("\n")
+        logger.info(f"Generated {output_file} with {len(results)} problems")
+
 
 def run_pipeline(
     specs: list[ProcessedSpec],
@@ -573,8 +583,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     # Generate JSON if requested (runs first)
     if args.json:
-        generate_local_hud_json(specs, "local-hud.json")
-        generate_remote_hud_json(specs, "remote-hud.json")
+        generate_jsons(specs)
 
     # Only run pipeline if build, push, or validate is requested
     if args.build or args.push or args.validate:
