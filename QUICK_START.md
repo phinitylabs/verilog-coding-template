@@ -6,6 +6,7 @@
 - Python 3.10+
 - Git
 - uv (`pip install uv`)
+- GitHub Personal Access Token with repo access
 
 ## Setup
 
@@ -18,22 +19,13 @@ cd verilog-coding-template
 uv sync
 ```
 
-### 2. Clone the problems repo
+### 2. Set GitHub token
 
 ```bash
-mkdir -p local-repos
-cd local-repos
-git clone https://github.com/phinitylabs/microcode_sequencer.git
-cd microcode_sequencer
-
-# Checkout all branches locally
-for branch in $(git branch -r | grep -v HEAD | sed 's/origin\///'); do
-  git checkout $branch 2>/dev/null || true
-done
-git checkout main
-
-cd ../..
+export GITHUB_TOKEN=ghp_your_token_here
 ```
+
+Add to your shell profile (~/.zshrc or ~/.bashrc) to persist.
 
 ### 3. Build and validate
 
@@ -50,7 +42,14 @@ uv run utils/imagectl3.py verilog_ -bv --jobs 4
 
 ## Adding a New Problem
 
-### 1. Create branches in microcode_sequencer repo
+### 1. Clone the problems repo
+
+```bash
+git clone https://github.com/phinitylabs/microcode_sequencer.git
+cd microcode_sequencer
+```
+
+### 2. Create branches
 
 Each problem needs 3 branches:
 - `<problem_id>_baseline` - Starting code (stubs or buggy)
@@ -58,15 +57,14 @@ Each problem needs 3 branches:
 - `<problem_id>_golden` - Complete solution (no tests)
 
 ```bash
-cd local-repos/microcode_sequencer
-
 # Create baseline
+git checkout main
 git checkout -b my_problem_baseline
 # Add sources/my_problem.v with TODO stubs
 # Add tests/test_my_problem.py with pytest runner only
 git add . && git commit -m "Baseline"
 
-# Create test branch
+# Create test branch from baseline
 git checkout -b my_problem_test
 # Add tests/test_my_problem_hidden.py with actual tests
 git add . && git commit -m "Add hidden tests"
@@ -81,9 +79,9 @@ git add . && git commit -m "Golden solution"
 git push origin my_problem_baseline my_problem_test my_problem_golden
 ```
 
-### 2. Register the problem
+### 3. Register the problem
 
-Edit `src/hud_controller/problems/basic.py`:
+Edit `src/hud_controller/problems/basic.py` in verilog-coding-template:
 
 ```python
 PROBLEM_REGISTRY.append(
@@ -99,13 +97,13 @@ PROBLEM_REGISTRY.append(
 )
 ```
 
-### 3. Build and validate
+### 4. Build and validate
 
 ```bash
 uv run utils/imagectl3.py verilog_ -bv --ids my_problem
 ```
 
-Expected output: All 6 validation checks pass.
+Expected: All 6 validation checks pass.
 
 ## Running Agent Evaluations
 
@@ -113,33 +111,16 @@ Expected output: All 6 validation checks pass.
 # Generate JSON config
 uv run utils/imagectl3.py verilog_ -j
 
-# Run evaluation (requires API key)
+# Run evaluation (requires ANTHROPIC_API_KEY)
 uv run hud eval local-hud.json claude --model claude-sonnet-4-5-20250929 --max-steps 150
-```
-
-## File Structure
-
-```
-verilog-coding-template/
-├── local-repos/
-│   └── microcode_sequencer/     # Clone of problems repo (all branches)
-├── src/hud_controller/
-│   └── problems/basic.py        # Problem registry
-├── Dockerfile                   # Docker build config
-└── utils/imagectl3.py           # Build/validate tool
 ```
 
 ## Troubleshooting
 
-**Build fails with "branch not found"**
-- Ensure all 3 branches exist in local-repos/microcode_sequencer
-- Run the branch checkout loop in step 2
-
-**Validation fails**
-- Baseline must compile
-- Tests must fail on baseline
-- Tests must pass on golden
-
-**Docker cache issues**
-- Increment `ENV random=randomN` in Dockerfile
-
+| Issue | Fix |
+|-------|-----|
+| Clone fails in Docker | Check GITHUB_TOKEN is set and has repo access |
+| Branch not found | Ensure all 3 branches are pushed to microcode_sequencer |
+| Tests don't fail on baseline | Baseline must have incomplete/buggy code |
+| Tests don't pass on golden | Golden solution is incorrect |
+| Docker cache stale | Increment `ENV random=randomN` in Dockerfile |

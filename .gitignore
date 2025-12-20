@@ -117,4 +117,3 @@ test_setup.py
 !outline-codegen/run_codegen_with_qa.py
 !outline-codegen/src/*.py
 
-.hud_eval.tomllocal-repos/

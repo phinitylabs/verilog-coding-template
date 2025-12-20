@@ -180,11 +180,16 @@ def build_image(
     hints: str,
     problem_id: str,
 ) -> bool:
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    if not github_token:
+        logger.warning("GITHUB_TOKEN not set - private repo clone may fail")
     cmd = [
         "docker",
         "build",
         "-t",
         image,
+        "--build-arg",
+        f"GITHUB_TOKEN={github_token}",
         "--build-arg",
         f"PROBLEM_ID={problem_id}",
         "--build-arg",
