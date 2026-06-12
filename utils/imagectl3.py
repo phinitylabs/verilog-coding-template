@@ -24,6 +24,7 @@ import json
 import logging
 import os
 import queue
+import shutil
 import subprocess
 import sys
 import threading
@@ -249,6 +250,17 @@ def push_image(image: str) -> bool:
     return True
 
 
+def local_mcp_config(image: str) -> dict[str, dict[str, object]]:
+    """MCP stdio config for local Docker eval (Windows-friendly docker path)."""
+    docker_cmd = shutil.which("docker") or "docker"
+    return {
+        "local": {
+            "command": docker_cmd,
+            "args": ["run", "--rm", "-i", "--init", image],
+        }
+    }
+
+
 def hud_dict(spec: ProcessedSpec, local: bool, provider: Literal["claude", "openai"]) -> dict:
     allowed_tools_mapping = {
         "claude": ["bash", "str_replace_based_edit_tool"],
@@ -272,17 +284,7 @@ def hud_dict(spec: ProcessedSpec, local: bool, provider: Literal["claude", "open
     }
 
     if local:
-        result["mcp_config"] = {
-            "local": {
-                "command": "docker",
-                "args": [
-                    "run",
-                    "--rm",
-                    "-i",
-                    spec.image,
-                ],
-            }
-        }
+        result["mcp_config"] = local_mcp_config(spec.image)
     else:
         result["mcp_config"] = {
             "hud": {
