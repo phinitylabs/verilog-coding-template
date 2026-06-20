@@ -77,6 +77,19 @@ uv sync
 
 **Expected output:** Should install ~20-30 packages without errors.
 
+> **Point eval links at the working web UI.** HUD v6 moved the v4/v5 web app to
+> `https://legacy.hud.ai`; the pinned hud-python SDK still hardcodes the old
+> `https://hud.ai` for the job/trace link it opens in your browser on
+> `uv run hud eval`. Run this once after `uv sync` (and after any SDK upgrade)
+> to repoint those links:
+>
+> ```bash
+> uv run python utils/patch_hud_legacy_url.py
+> ```
+>
+> It's idempotent. The SDK lives in `.venv` (recreated by `uv sync`), so this
+> can't be committed — re-run the script whenever you re-sync.
+
 ### Step 2: Verify Installation
 
 ```bash
