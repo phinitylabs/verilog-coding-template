@@ -13,18 +13,17 @@ This is a template framework for creating and evaluating AI agent tasks. It prov
 ```
 .
 ├── src/hud_controller/          # Main framework code
-│   ├── app.py                   # Main MCP server and entry points
-│   ├── spec.py                  # Core specifications (Problem, Grade, Grader)
+│   ├── env.py                   # HUD v6 environment (ssh + two-yield template)
+│   ├── app.py                   # validate_problem CLI for imagectl3 -v
+│   ├── prompts.py               # Problem prompt helpers
+│   ├── spec.py                  # Core specifications (Problem, Grade)
 │   ├── grading_runner.py        # Test execution and grading logic
 │   ├── utils.py                 # Utility functions
 │   ├── setup.py                 # Environment setup
 │   ├── problems/                # Task definitions by difficulty
 │   │   ├── basic.py             # Easy difficulty tasks
-│   └── tools/                   # MCP tools for testing
-│       ├── base.py              # Base tool definitions
-│       ├── bash.py              # Bash execution
-│       ├── edit.py              # File editing
-│       └── run.py               # Command running
+├── run_eval.py                  # Local Docker eval driver (HUD v6)
+├── tasks.py                     # Generated task rows (imagectl3 -j)
 ├── pyproject.toml               # Python package configuration
 ├── Dockerfile                   # Container setup
 └── README.md                    # This file
@@ -135,34 +134,35 @@ Note: ensure your image is built before you try to validate it.
 ```bash
 uv sync
 ```
-### Build, Validate all problems and generate Json
+### Build, validate, and generate tasks.py
 
 ```bash
 uv run utils/imagectl3.py verilog_ -bvj
 ```
-This will build all the docker images, with the prefix `verilog_` and then run the validation workflow. 
-Once you get a lot of problems, you'll find it helpful to do building and validation in parallel with `--jobs`:
+This builds Docker images with prefix `verilog_`, validates patch logic, and writes `tasks.py`.
+For many problems, use parallel jobs:
 ```bash
 uv run utils/imagectl3.py verilog_ -bvj --jobs 4
 ```
 
-### Run hud eval locally
-You can run the images locally with:
-```
-uv run hud local-hud.json claude --max-steps 50
+### Run agent eval locally (HUD v6)
+
+Each problem runs in its own Docker image via `run_eval.py`:
+
+```bash
+uv run python run_eval.py --ids simple_counter --agent claude \
+  --model claude-sonnet-4-5 --max-steps 150 --group-size 10
 ```
 
-### Run hud eval remotely
-You can run them remotely too! However, you'll need to push the images. T
-To make this easier, we have the `--push` or `-p` flag in imagectl3. 
-Note that we also change the image prefix to make it pushable to docker hub.
+Use `--full` to run all tasks in `tasks.py` with max-steps 100.
+
+### Remote eval (push images)
+
 ```bash
 uv run utils/imagectl3.py govindhud/verilog_ -bvjp --jobs 4
 ```
-Once all images are pushed, we can:
-```
-uv run hud remote-hud.json claude --max-steps 50
-```
+
+Hosted HUD v6 eval (`hud deploy` + `hud sync tasks`) is not wired up in this template yet.
 
 
 ## Configuration
@@ -188,12 +188,10 @@ ENV random=random6  # Increment this number!
 
 ### Environment Variables
 
-Key environment variables used by the grading system:
+Key environment variables:
 
-- `MCP_TESTING_MODE` - Enable testing tools (default: "1")
-- `NODE_ENV` - Node environment (set to "test" for testing)
-- `PROBLEM_ID` - The specific problem being evaluated
-- `HINTS` - Hint level for the problem
+- `PROBLEM_ID` - The specific problem baked into each Docker image
+- `HINTS` - Hint level for the problem (`none` or `all`)
 
 ### Docker Configuration
 

@@ -1,34 +1,28 @@
 #!/usr/bin/env python3
-"""
-Prints the prompt for a given problem id.
-"""
+"""Print the prompt for a given problem id."""
 
 from __future__ import annotations
 
 import argparse
 import os
 
-# Ensure MCP tools do not load during import
-os.environ["MCP_TESTING_MODE"] = "0"
+import hud_controller.problems
+from hud_controller.prompts import get_spec, spec_to_statement
+from hud_controller.utils import import_submodules
 
-import hud_controller.app as app
+import_submodules(hud_controller.problems)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("problem_id")
-
     parser.add_argument("--hints", action="store_true", default=False)
     args = parser.parse_args()
 
-    if args.hints:
-        os.environ["HINTS"] = "all"
-    else:
-        os.environ["HINTS"] = "none"
+    os.environ["HINTS"] = "all" if args.hints else "none"
 
-    spec = app._get_spec(args.problem_id)
-    prompt = app.spec_to_statement(spec)
-    print(prompt)
+    spec = get_spec(args.problem_id)
+    print(spec_to_statement(spec))
     return 0
 
 

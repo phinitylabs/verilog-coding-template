@@ -99,10 +99,7 @@ qa_summary.md
 test_codegen_simple.json
 final_*.json
 test_problems*.json
-local-claude-hud.json
-local-openai-hud.json
-remote-claude-hud.json
-remote-openai-hud.json
+tasks.py
 problems-metadata.json
 debug_codegen.py
 

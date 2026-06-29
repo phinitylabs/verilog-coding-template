@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(kw_only=True, frozen=True)
 class Grade:
-    """The grade to return within the mcp.grade_problem tool."""
+    """Grade returned by patch-based validation (legacy MCP shape; kept for validate_problem)."""
 
     subscores: dict[str, float]
     weights: dict[str, float]
@@ -62,7 +62,7 @@ class ProblemSpec:
     task_type: str = "coding"
     review_level: ReviewLevel = "no-review"
     config: dict[str, Any] | None = None
-    startup_command: str = "hud_eval"
+    startup_command: str = "hud serve"
     demo: bool = False
     too_hard: bool = False
 

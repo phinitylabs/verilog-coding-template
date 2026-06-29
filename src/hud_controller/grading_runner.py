@@ -69,6 +69,7 @@ class GradingRunner:
             cwd=Path(self.grade_working_dir),
             capture_output=True,
             text=True,
+            timeout=900,
         )
         
         logger.info(f"Tests completed with code: {result.returncode}")
@@ -100,12 +101,22 @@ class GradingRunner:
         logger.info("Starting grading workflow")
         # Step 1: Copy original repo to working dir
         logger.info(f"Copying original repo to {self.grade_working_dir}")
-        subprocess.run(["sudo", "-u", "ubuntu", "cp", "-r", self.original_repo_path, self.grade_working_dir], check=True)
+        subprocess.run(
+            ["sudo", "-u", "ubuntu", "cp", "-r", self.original_repo_path, self.grade_working_dir],
+            check=True,
+            timeout=300,
+        )
         logger.info(f"Copied original repo to {self.grade_working_dir}")
 
         # step 1.5 get the agent patch
         logger.info("Getting agent patch")
-        patch = subprocess.run(["sudo", "-u", "ubuntu", "git", "diff"], capture_output=True, text=True).stdout
+        patch = subprocess.run(
+            ["sudo", "-u", "ubuntu", "git", "diff"],
+            cwd=self.original_repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
 
         # Step 2: apply test patch
         logger.info(f"Applying test patch to {self.grade_working_dir}")
@@ -181,7 +192,9 @@ class GradingRunner:
         # Step 1: Copy original repo to working dir
         logger.info(f"Copying original repo to {self.grade_working_dir}")
         subprocess.run(
-            ["sudo", "-u", "ubuntu", "cp", "-r", self.original_repo_path, self.grade_working_dir], check=True
+            ["sudo", "-u", "ubuntu", "cp", "-r", self.original_repo_path, self.grade_working_dir],
+            check=True,
+            timeout=300,
         )
         logger.info(f"Copied original repo to {self.grade_working_dir}")
 

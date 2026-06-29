@@ -71,7 +71,8 @@ RUN apt-get update -y \
   libmanette-0.2-0 \
   libgles2 \
   iverilog \
-  verilator
+  verilator \
+  util-linux
 
 RUN update-ca-certificates
 
@@ -120,11 +121,13 @@ RUN git checkout $BASELINE_BRANCH && \
     git checkout $GOLDEN_BRANCH && \
     git checkout $BASELINE_BRANCH
 
-# Generate patches for grading
+# Generate patches for grading (root-owned, agent cannot read)
 USER root
 RUN mkdir -p /home/root && \
     sudo -u ubuntu git diff $BASELINE_BRANCH $TEST_BRANCH > /home/root/test.patch && \
-    sudo -u ubuntu git diff $BASELINE_BRANCH $GOLDEN_BRANCH > /home/root/golden.patch
+    sudo -u ubuntu git diff $BASELINE_BRANCH $GOLDEN_BRANCH > /home/root/golden.patch && \
+    chmod 700 /home/root && \
+    chmod 600 /home/root/test.patch /home/root/golden.patch
 USER ubuntu
 
 # Overwrite git history to avoid leaking info
@@ -166,22 +169,15 @@ COPY ./pyproject.toml /mcp_server/pyproject.toml
 COPY ./README.md /mcp_server/README.md
 
 ENV RUST_LOG=warn
-RUN cd /mcp_server && uv venv && . .venv/bin/activate && uv sync && uv pip install -e . 
-ENV PYTHONPATH=/mcp_server/.venv/lib/python3.10/site-packages
+RUN cd /mcp_server && uv venv && . .venv/bin/activate && uv sync && uv pip install -e .
 ENV PATH=/mcp_server/.venv/bin:$PATH
 
 ENV WIDTH=1280
 ENV HEIGHT=800
 ENV DISPLAY_NUM=1
-RUN mkdir -p /home/ubuntu/screenshots
-RUN chmod 777 /home/ubuntu/screenshots
+RUN mkdir -p /home/ubuntu/screenshots && chmod 777 /home/ubuntu/screenshots
 ENV SCREENSHOT_DIR=/home/ubuntu/screenshots
-RUN mkdir -p /home/ubuntu/Downloads
-RUN chmod 777 /home/ubuntu/Downloads
-
-RUN chmod 777 /root
-
-EXPOSE 6080 3000
+RUN mkdir -p /home/ubuntu/Downloads && chmod 777 /home/ubuntu/Downloads
 
 ARG HINTS="none"
 ENV HINTS=$HINTS
@@ -189,4 +185,8 @@ ENV HINTS=$HINTS
 ARG PROBLEM_ID
 ENV PROBLEM_ID=$PROBLEM_ID
 
-CMD ["hud_eval"]
+EXPOSE 8765
+
+USER root
+WORKDIR /mcp_server
+CMD ["python3", "-m", "hud", "serve", "src/hud_controller/env.py:env", "--host", "0.0.0.0", "--port", "8765"]

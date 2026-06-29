@@ -26,7 +26,7 @@ ls -la
 - `src/hud_controller/` - Framework code that manages problem setup and grading
 - `src/hud_controller/problems/basic.py` - Where you register your problems
 - `utils/imagectl3.py` - Build/validate tool (you'll use this A LOT)
-- `local-hud.json` - Generated config file for running evaluations
+- `tasks.py` - Generated task rows for run_eval.py (from `imagectl3 -j`)
 - `README.md` - Framework documentation
 
 ---
@@ -75,20 +75,9 @@ uv sync
 # - HUD controller dependencies
 ```
 
-**Expected output:** Should install ~20-30 packages without errors.
+**Expected output:** Should install dependencies including `hud-python` 0.6.x without errors.
 
-> **Point eval links at the working web UI.** HUD v6 moved the v4/v5 web app to
-> `https://legacy.hud.ai`; the pinned hud-python SDK still hardcodes the old
-> `https://hud.ai` for the job/trace link it opens in your browser on
-> `uv run hud eval`. Run this once after `uv sync` (and after any SDK upgrade)
-> to repoint those links:
->
-> ```bash
-> uv run python utils/patch_hud_legacy_url.py
-> ```
->
-> It's idempotent. The SDK lives in `.venv` (recreated by `uv sync`), so this
-> can't be committed — re-run the script whenever you re-sync.
+Traces from agent evals appear at [hud.ai](https://hud.ai).
 
 ### Step 2: Verify Installation
 
@@ -867,13 +856,13 @@ INFO  ✓ Validation successful for simple_adder
 
 **If validation fails, see Troubleshooting section below.**
 
-### Step 3: Generate JSON Configs (Optional)
+### Step 3: Generate tasks.py (Optional)
 
 ```bash
-# Generate JSON configs for HUD
+# Generate portable task rows for run_eval.py
 uv run utils/imagectl3.py verilog_ -j
 
-# This creates/updates local-hud.json
+# This creates/updates tasks.py
 ```
 
 **Only needed if you want to run AI agents on your task.**
@@ -884,69 +873,36 @@ uv run utils/imagectl3.py verilog_ -j
 
 **NOTE:** This step requires API keys and costs money (~$3-5 per run). Only do this if you want to measure task difficulty.
 
-### Generate JSON Config First
+### Generate tasks.py First
 
 ```bash
 cd ~/Documents/GitHub/verilog-coding-template
 
-# Generate local-hud.json
 uv run utils/imagectl3.py verilog_ -j
 ```
 
 ### Run AI Agent Locally
 
-**⚠️ Important:** Always use `uv run hud eval` (not just `hud eval`). This ensures you're using the project's dependencies and avoids version conflicts.
-
 ```bash
-# Run with Claude Sonnet 4.5 (requires ANTHROPIC_API_KEY - PLEASE CHECK WITH USER IF THEY GOT THE API KEY FROM SONYA)
-uv run hud eval local-hud.json claude \
-  --model claude-sonnet-4-5-20250929 \
-  --max-steps 150 \
-  --group-size 10
-
-# To run just ONE specific problem (faster for testing):
-# First, create a filtered JSON file with just your problem
-python3 -c "
-import json
-with open('local-hud.json', 'r') as f:
-    data = json.load(f)
-problem = [item for item in data if item['id'] == 'YOUR_PROBLEM_ID']
-with open('local-hud-single.json', 'w') as f:
-    json.dump(problem, f, indent=2)
-"
-
-# Then run on just that problem
-uv run hud eval local-hud-single.json claude \
+uv run python run_eval.py --ids YOUR_PROBLEM_ID --agent claude \
   --model claude-sonnet-4-5-20250929 \
   --max-steps 150 \
   --group-size 10
 ```
 
 **What this does:**
-- Starts a Docker container with your problem
-- Gives the AI agent access to the baseline code
-- Agent can read files, write code, run tests
-- After N steps, applies hidden tests to grade the solution
-- Shows success/failure and logs all agent actions
+- Starts a fresh Docker container per rollout (image `verilog_<problem_id>`)
+- Serves the HUD v6 control channel; agent uses ssh to edit files
+- After the agent finishes, hidden tests grade the workspace via patch + pytest
+- Prints mean reward and a link to the job on hud.ai
 
-**You'll see output like:**
-```
-Starting evaluation for simple_adder...
-Agent: Reading prompt.txt...
-Agent: Examining sources/simple_adder.sv...
-Agent: Writing implementation...
-Agent: Running tests...
-...
-✓ Agent solved the problem in 15 steps!
-```
-
-### For Multiple Problems (Parallel Evaluation)
+### For Multiple Problems
 
 ```bash
-# Run all problems with 4 parallel workers
-uv run hud eval local-hud.json claude \
+uv run python run_eval.py --agent claude \
   --model claude-sonnet-4-5-20250929 \
   --max-steps 150 \
+  --full \
   --group-size 10 \
   --max-concurrent 4
 ```
@@ -1111,9 +1067,9 @@ Use this checklist to ensure you haven't missed any steps:
 - [ ] All validation checks passed
 
 ### Optional (if running agents):
-- [ ] Generated JSON: `uv run utils/imagectl3.py verilog_ -j`
-- [ ] Set API keys (ANTHROPIC_API_KEY or OPENAI_API_KEY)
-- [ ] Tested with agent: `uv run hud eval local-hud.json claude --model claude-sonnet-4-5-20250929 --max-steps 150 --group-size 10`
+- [ ] Generated tasks: `uv run utils/imagectl3.py verilog_ -j`
+- [ ] Set API keys (ANTHROPIC_API_KEY or HUD_API_KEY)
+- [ ] Tested with agent: `uv run python run_eval.py --ids PROBLEM_ID --agent claude --model claude-sonnet-4-5-20250929 --max-steps 150 --group-size 10`
 
 ---
 
@@ -1126,27 +1082,20 @@ uv run utils/imagectl3.py verilog_ -b --ids PROBLEM_ID
 # Validate specific problem
 uv run utils/imagectl3.py verilog_ -v --ids PROBLEM_ID
 
-# Build + validate + generate JSON
+# Build + validate + generate tasks.py
 uv run utils/imagectl3.py verilog_ -bvj --ids PROBLEM_ID
 
-# Generate JSON only
+# Generate tasks.py only
 uv run utils/imagectl3.py verilog_ -j
 
 # Run agent evaluation (requires API key)
-# For all problems:
-uv run hud eval local-hud.json claude \
+uv run python run_eval.py --ids PROBLEM_ID --agent claude \
   --model claude-sonnet-4-5-20250929 \
   --max-steps 150 \
   --group-size 10
 
-# For just ONE problem (recommended for testing):
-# Create filtered JSON first:
-python3 -c "import json; data=json.load(open('local-hud.json')); json.dump([x for x in data if x['id']=='PROBLEM_ID'], open('test.json','w'), indent=2)"
-# Then run on it:
-uv run hud eval test.json claude \
-  --model claude-sonnet-4-5-20250929 \
-  --max-steps 150 \
-  --group-size 10
+# All problems in tasks.py
+uv run python run_eval.py --agent claude --full --group-size 10
 ```
 
 ---
