@@ -25,4 +25,4 @@ async def start_dinit():
     loader = ServiceLoader(Path("/etc/dinit.d"))
     services = loader.load_all()
     engine = SimpleDinit(services)
-    engine.start("boot")
+    await asyncio.to_thread(engine.start, "boot")
