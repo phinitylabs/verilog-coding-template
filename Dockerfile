@@ -151,6 +151,18 @@ USER root
 
 # Setup and start dinit
 COPY dinit.d/ /etc/dinit.d/
+# Git on Windows (core.symlinks=false) checks out symlinks as plain text files
+# containing the link target, so dinit.d/boot.d/* arrive as files like "../xfce4".
+# Restore them to real symlinks so manual_dinit can resolve the service refs.
+# No-op on Linux/macOS, where COPY preserves the real symlinks already.
+RUN for f in /etc/dinit.d/boot.d/*; do \
+        if [ -f "$f" ] && [ ! -L "$f" ]; then \
+            target="$(cat "$f")"; \
+            case "$target" in \
+                */*|..*) ln -sfn "$target" "$f" ;; \
+            esac; \
+        fi; \
+    done
 RUN mkdir -p /var/log/dinit && chmod 755 /var/log/dinit
 
 # Postgres config:
